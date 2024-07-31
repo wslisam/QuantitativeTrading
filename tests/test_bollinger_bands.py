@@ -9,10 +9,18 @@ from strategies.bollinger_bands import bollinger_bands
 from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD
 
 def test_bollinger_bands():
-    # Create sample data
-    dates = pd.date_range(start='2020-01-01', periods=100, freq='D')
+    # Create sample data that ensures both upper and lower band crossings
+    np.random.seed(42)  # Set seed for reproducibility
+    dates = pd.date_range(start='2020-01-01', periods=200, freq='D')
+    prices = [100]
+    for _ in range(199):
+        change = np.random.normal(0, 2)
+        if len(prices) % 40 == 0:  # Force some large moves to trigger signals
+            change = 8 if len(prices) % 80 == 0 else -8
+        prices.append(max(prices[-1] + change, 1))  # Ensure price doesn't go negative
+    
     data = pd.DataFrame({
-        'Close': np.random.randn(100).cumsum() + 100
+        'Close': prices
     }, index=dates)
 
     # Run the strategy
@@ -26,8 +34,8 @@ def test_bollinger_bands():
     assert 'middle' in signals.columns
 
     # Check if there are both buy and sell signals
-    assert (signals['signal'] == 1).any()
-    assert (signals['signal'] == -1).any()
+    assert (signals['signal'] == 1).any(), "No buy signals generated"
+    assert (signals['signal'] == -1).any(), "No sell signals generated"
 
     # Check if Bollinger Bands are calculated correctly
     assert np.isclose(signals['middle'].iloc[BOLLINGER_WINDOW-1], data['Close'].iloc[:BOLLINGER_WINDOW].mean(), rtol=1e-5)
