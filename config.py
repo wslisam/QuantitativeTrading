@@ -1,0 +1,21 @@
+# Trading parameters
+INITIAL_CAPITAL = 100000.0
+
+# Data parameters
+DEFAULT_START_DATE = "2020-01-01"
+DEFAULT_END_DATE = "2023-04-30"
+
+# Strategy parameters
+
+# Moving Average Crossover Strategy
+MOVING_AVERAGE_SHORT_WINDOW = 50
+MOVING_AVERAGE_LONG_WINDOW = 200
+
+# RSI Strategy
+RSI_WINDOW = 14
+RSI_OVERBOUGHT = 70
+RSI_OVERSOLD = 30
+
+# Bollinger Bands Strategy
+BOLLINGER_WINDOW = 20
+BOLLINGER_NUM_STD = 2
