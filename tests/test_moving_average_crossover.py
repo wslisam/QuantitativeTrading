@@ -30,10 +30,11 @@ def test_moving_average_crossover():
     assert (signals['signal'] == 0).any()
 
     # Check if moving averages are calculated correctly
-    # assert signals['short_mavg'].iloc[MOVING_AVERAGE_SHORT_WINDOW-1] == data['Close'].iloc[:MOVING_AVERAGE_SHORT_WINDOW].mean()
-    data = data['Close'].iloc[:MOVING_AVERAGE_SHORT_WINDOW].mean()
-    assert_almost_equal(signals['short_mavg'].iloc[MOVING_AVERAGE_SHORT_WINDOW-1], data , decimal=5)
-    assert signals['long_mavg'].iloc[MOVING_AVERAGE_LONG_WINDOW-1] == data['Close'].iloc[:MOVING_AVERAGE_LONG_WINDOW].mean()
+    short_window_mean = data['Close'].iloc[:MOVING_AVERAGE_SHORT_WINDOW].mean()
+    assert_almost_equal(signals['short_mavg'].iloc[MOVING_AVERAGE_SHORT_WINDOW-1], short_window_mean, decimal=5)
+    
+    long_window_mean = data['Close'].iloc[:MOVING_AVERAGE_LONG_WINDOW].mean()
+    assert_almost_equal(signals['long_mavg'].iloc[MOVING_AVERAGE_LONG_WINDOW-1], long_window_mean, decimal=5)
 
 if __name__ == "__main__":
     pytest.main()
