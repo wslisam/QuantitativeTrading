@@ -14,6 +14,7 @@ from backtesting.backtest import Backtest
 from strategies.moving_average_crossover import moving_average_crossover
 from strategies.rsi_strategy import rsi_strategy
 from strategies.bollinger_bands import bollinger_bands
+from strategies.ml_strategy import ml_strategy
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from datetime import datetime, timedelta
@@ -46,6 +47,8 @@ class BacktestThread(QThread):
                 strategy_func = rsi_strategy
             elif self.strategy == "Bollinger Bands":
                 strategy_func = bollinger_bands
+            elif self.strategy == "Machine Learning Strategy": 
+                strategy_func = ml_strategy
 
             self.progress.emit(60)
             backtest = Backtest(data, strategy_func)
@@ -91,7 +94,7 @@ class MainWindow(QMainWindow):
         input_layout.addWidget(self.end_date_input, 0, 5)
 
         self.strategy_combo = QComboBox()
-        self.strategy_combo.addItems(["Moving Average Crossover", "RSI Strategy", "Bollinger Bands"])
+        self.strategy_combo.addItems(["Moving Average Crossover", "RSI Strategy", "Bollinger Bands", "Machine Learning Strategy"])
         input_layout.addWidget(QLabel("Strategy:"), 1, 0)
         input_layout.addWidget(self.strategy_combo, 1, 1)
 
@@ -201,7 +204,13 @@ class MainWindow(QMainWindow):
             self.ax1.scatter(sell_signals.index, data.loc[sell_signals.index, 'Close'], marker='v', color='r', s=100, label='Sell Signal')
 
         # Plot strategy-specific indicators
-        if strategy == "Moving Average Crossover":
+        if strategy == "Machine Learning Strategy":
+            if 'Signal' in results.columns:
+                buy_signals = results[results['Signal'] == 1]
+                sell_signals = results[results['Signal'] == 0]
+                self.ax1.scatter(buy_signals.index, data.loc[buy_signals.index, 'Close'], marker='^', color='g', s=100, label='Buy Signal')
+                self.ax1.scatter(sell_signals.index, data.loc[sell_signals.index, 'Close'], marker='v', color='r', s=100, label='Sell Signal')
+        elif strategy == "Moving Average Crossover":
             short_ma = data['Close'].rolling(window=MOVING_AVERAGE_SHORT_WINDOW).mean()
             long_ma = data['Close'].rolling(window=MOVING_AVERAGE_LONG_WINDOW).mean()
             self.ax1.plot(short_ma.index, short_ma, label=f'{MOVING_AVERAGE_SHORT_WINDOW}-day MA', alpha=0.7)

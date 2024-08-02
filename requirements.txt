@@ -6,3 +6,4 @@ yfinance
 pytest
 ta
 scipy
+scikit-learn

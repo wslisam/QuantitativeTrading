@@ -19,3 +19,8 @@ RSI_OVERSOLD = 30
 # Bollinger Bands Strategy
 BOLLINGER_WINDOW = 20
 BOLLINGER_NUM_STD = 2
+
+# Machine Learning Strategy parameters
+ML_LOOKBACK = 30
+ML_TEST_SIZE = 0.2
+ML_N_ESTIMATORS = 100
