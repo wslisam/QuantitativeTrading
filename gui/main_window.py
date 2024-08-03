@@ -11,10 +11,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from backtesting.backtest import Backtest
-from strategies.moving_average_crossover import moving_average_crossover
-from strategies.rsi_strategy import rsi_strategy
-from strategies.bollinger_bands import bollinger_bands
-from strategies.ml_strategy import ml_strategy
+from strategies import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from datetime import datetime, timedelta
