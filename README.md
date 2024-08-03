@@ -1,7 +1,7 @@
 # QuantitativeTrading
 Quantitative Trading 
 
-An algorithmic trading system that combines technical analysis, sentiment analysis, and machine learning to make trading decisions across multiple assets.
+An algorithmic trading system.
 
 ## Features
 
