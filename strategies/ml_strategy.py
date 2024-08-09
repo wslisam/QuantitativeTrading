@@ -7,11 +7,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from utils.indicators import calculate_rsi
 
-def ml_strategy(data, lookback=30, test_size=0.2, n_estimators=100):
+def feature_engineering(data, lookback=30):
+    """
+    Perform feature engineering on the dataset.
+    """
     if len(data) <= lookback:
         raise ValueError(f"Not enough data. Required: >{lookback}, Provided: {len(data)}")
 
-    # Feature engineering
     data['Returns'] = data['Close'].pct_change()
     data['MA5'] = data['Close'].rolling(window=5).mean()
     data['MA20'] = data['Close'].rolling(window=20).mean()
@@ -19,7 +21,23 @@ def ml_strategy(data, lookback=30, test_size=0.2, n_estimators=100):
     
     # Drop NaN values
     data.dropna(inplace=True)
-    
+    return data
+
+def train_model(X_train, y_train, n_estimators=100):
+    """
+    Train a Random Forest model.
+    """
+    model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+def ml_strategy(data, lookback=30, test_size=0.2, n_estimators=100):
+    """
+    Execute the machine learning strategy.
+    """
+    # Feature engineering
+    data = feature_engineering(data, lookback)
+
     # Create features and target
     X = data[['Returns', 'MA5', 'MA20', 'RSI']].values
     y = (data['Close'].shift(-1) > data['Close']).astype(int).values
@@ -40,8 +58,7 @@ def ml_strategy(data, lookback=30, test_size=0.2, n_estimators=100):
     X_test_scaled = scaler.transform(X_test)
     
     # Train the model
-    model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
-    model.fit(X_train_scaled, y_train)
+    model = train_model(X_train_scaled, y_train, n_estimators)
     
     # Make predictions
     predictions = model.predict(X_test_scaled)
