@@ -27,7 +27,7 @@ def test_moving_average_crossover():
 
     # Check if there are both buy and sell signals
     assert (signals['signal'] == 1).any()
-    assert (signals['signal'] == 0).any()
+    assert (signals['signal'] == -1).any()
 
     # Check if moving averages are calculated correctly
     short_window_mean = data['Close'].iloc[:MOVING_AVERAGE_SHORT_WINDOW].mean()

@@ -29,7 +29,7 @@ def test_macd_strategy():
 
     # Check if there are both buy and sell signals
     assert (signals['signal'] == 1).any()
-    assert (signals['signal'] == 0).any()
+    assert (signals['signal'] == -1).any()
 
     # Check if MACD components are calculated correctly
     ema_fast = data['Close'].ewm(span=MACD_FAST, adjust=False).mean()
@@ -47,7 +47,7 @@ def test_macd_strategy():
             assert signals['signal'].iloc[i] == 1
         elif signals['macd'].iloc[i-1] >= signals['signal_line'].iloc[i-1] and \
              signals['macd'].iloc[i] < signals['signal_line'].iloc[i]:
-            assert signals['signal'].iloc[i] == 0 
+            assert signals['signal'].iloc[i] == -1
 
 if __name__ == "__main__":
     pytest.main()
