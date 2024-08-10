@@ -60,6 +60,3 @@ def test_execute_ma_crossover_strategy(sample_data):
     
     # Check if final cumulative strategy return is different from initial capital
     assert results['cumulative_strategy_returns'].iloc[-1] != INITIAL_CAPITAL
-
-if __name__ == "__main__":
-    pytest.main()
