@@ -21,6 +21,14 @@ def macd_strategy(data, fast=MACD_FAST, slow=MACD_SLOW, signal=MACD_SIGNAL):
     signals['price'] = data['Close']
     
     # Calculate MACD and signal line
+    # Ensure there is enough data to compute MACD
+    if len(data) < max(fast, slow, signal):
+        signals['signal'] = np.nan
+        signals['macd'] = np.nan
+        signals['signal_line'] = np.nan
+        signals['positions'] = np.nan
+        return signals
+    
     signals['macd'], signals['signal_line'] = calculate_macd(data, fast, slow, signal)
 
     # Create signals
