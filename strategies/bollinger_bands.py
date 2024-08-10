@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD
+from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD, INITIAL_CAPITAL
 
 def calculate_bollinger_bands(data, window=BOLLINGER_WINDOW, num_std=BOLLINGER_NUM_STD):
     """
@@ -31,4 +31,27 @@ def bollinger_bands(data, window=BOLLINGER_WINDOW, num_std=BOLLINGER_NUM_STD):
     # Generate trading orders
     signals['positions'] = signals['signal'].diff()
 
+    return signals
+
+def execute_bollinger_hand_crossover_strategy(signals):
+    """
+    Execute the trading strategy based on Bollinger Bands signals.
+    """
+    initial_capital = INITIAL_CAPITAL  # Starting capital
+    shares = 0  # Number of shares held
+    portfolio_value = []
+
+    for index, row in signals.iterrows():
+        if row['positions'] == 1:  # Buy signal
+            shares += initial_capital // row['price']  # Buy as many shares as possible
+            initial_capital -= shares * row['price']
+        elif row['positions'] == -1:  # Sell signal
+            initial_capital += shares * row['price']  # Sell all shares
+            shares = 0
+        
+        # Calculate total portfolio value
+        total_value = initial_capital + (shares * row['price'])
+        portfolio_value.append(total_value)
+
+    signals['portfolio_value'] = portfolio_value
     return signals

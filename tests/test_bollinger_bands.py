@@ -1,27 +1,25 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import pytest
 import pandas as pd
 import numpy as np
-from strategies.bollinger_bands import bollinger_bands
-from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD
+from strategies.bollinger_bands import bollinger_bands, execute_bollinger_hand_crossover_strategy
+from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD, INITIAL_CAPITAL
 
-def test_bollinger_bands():
-    # Create sample data that ensures both upper and lower band crossings
+def create_sample_data():
+    """Generate sample price data for testing."""
     np.random.seed(42)  # Set seed for reproducibility
     dates = pd.date_range(start='2020-01-01', periods=200, freq='D')
     prices = [100]
     for _ in range(199):
         change = np.random.normal(0, 2)
-        if len(prices) % 40 == 0:  # Force some large moves to trigger signals
-            change = 8 if len(prices) % 80 == 0 else -8
         prices.append(max(prices[-1] + change, 1))  # Ensure price doesn't go negative
-    
-    data = pd.DataFrame({
-        'Close': prices
-    }, index=dates)
+
+    return pd.DataFrame({'Close': prices}, index=dates)
+
+def test_bollinger_bands():
+    # Create sample data
+    data = create_sample_data()
 
     # Run the strategy
     signals = bollinger_bands(data)
@@ -52,5 +50,21 @@ def test_bollinger_bands():
     )
     assert np.isclose(signals['lower'].iloc[BOLLINGER_WINDOW-1], expected_lower, rtol=1e-5)
 
-if __name__ == "__main__":
-    pytest.main()
+def test_execute_bollinger_hand_crossover_strategy():
+    # Create sample data
+    data = create_sample_data()
+
+    # Run the strategy
+    signals = bollinger_bands(data)
+    executed_signals = execute_bollinger_hand_crossover_strategy(signals)
+
+    # Check if portfolio value is calculated
+    assert 'portfolio_value' in executed_signals.columns
+    assert len(executed_signals['portfolio_value']) == len(signals)
+
+    # Check if initial capital is correctly managed
+    initial_capital = INITIAL_CAPITAL
+    assert executed_signals['portfolio_value'].iloc[0] == initial_capital
+
+    # Ensure portfolio value changes
+    assert executed_signals['portfolio_value'].iloc[-1] != initial_capital
