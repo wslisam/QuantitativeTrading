@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from config import STOCHASTIC_K_PERIOD, STOCHASTIC_D_PERIOD, STOCHASTIC_OVERBOUGHT , STOCHASTIC_OVERSOLD
+from config import STOCHASTIC_K_PERIOD, STOCHASTIC_D_PERIOD, STOCHASTIC_OVERBOUGHT, STOCHASTIC_OVERSOLD
 
 def calculate_stochastic_oscillator(data, k_period=STOCHASTIC_K_PERIOD, d_period=STOCHASTIC_D_PERIOD):
     """
@@ -13,6 +13,12 @@ def calculate_stochastic_oscillator(data, k_period=STOCHASTIC_K_PERIOD, d_period
     :param d_period: The period for %D line (signal line)
     :return: DataFrame with %K and %D values
     """
+    if data.empty:
+        raise ValueError("Input data is empty")
+
+    if len(data) < max(k_period, d_period):
+        raise ValueError("Not enough data to calculate")
+
     low_min = data['low'].rolling(window=k_period, min_periods=1).min()
     high_max = data['high'].rolling(window=k_period, min_periods=1).max()
 
@@ -36,6 +42,12 @@ def stochastic_oscillator_strategy(data, k_period=STOCHASTIC_K_PERIOD, d_period=
     :param oversold: The oversold threshold
     :return: DataFrame with signals
     """
+    if data.empty:
+        raise ValueError("Input data is empty")
+
+    if len(data) < max(k_period, d_period):
+        raise ValueError("Not enough data to calculate")
+
     signals = pd.DataFrame(index=data.index)
     signals['price'] = data['close']
     
