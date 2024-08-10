@@ -1,55 +1,71 @@
-# tests/test_stochastic_oscillator_strategy.py
-
 import pytest
 import pandas as pd
 import numpy as np
-from strategies.stochastic_oscillator_strategy import (
-    calculate_stochastic_oscillator,
-    stochastic_oscillator_strategy
-)
-from config import (
-    STOCHASTIC_K_PERIOD,
-    STOCHASTIC_D_PERIOD,
-    STOCHASTIC_OVERBOUGHT,
-    STOCHASTIC_OVERSOLD
-)
+from strategies.bollinger_bands import bollinger_bands, execute_bollinger_hand_crossover_strategy
+from config import BOLLINGER_WINDOW, BOLLINGER_NUM_STD, INITIAL_CAPITAL
 
 @pytest.fixture
 def sample_data():
-    # Create sample data
-    dates = pd.date_range(start='2020-01-01', end='2020-12-31', freq='D')
+    """Generate sample price data for testing."""
     np.random.seed(42)  # Set seed for reproducibility
-    prices = np.random.randn(len(dates)).cumsum() + 100
-    return pd.DataFrame({
-        'close': prices,
-        'high': prices + np.random.rand(len(dates)),
-        'low': prices - np.random.rand(len(dates))
-    }, index=dates)
+    dates = pd.date_range(start='2020-01-01', periods=200, freq='D')
+    prices = [100]
+    for _ in range(199):
+        change = np.random.normal(0, 2)
+        prices.append(max(prices[-1] + change, 1))  # Ensure price doesn't go negative
 
-def test_calculate_stochastic_oscillator(sample_data):
-    stoch = calculate_stochastic_oscillator(sample_data)
-    
-    assert isinstance(stoch, pd.DataFrame)
-    assert '%K' in stoch.columns
-    assert '%D' in stoch.columns
-    assert len(stoch) == len(sample_data)
-    assert (stoch >= 0).all().all() and (stoch <= 100).all().all()
+    return pd.DataFrame({'Close': prices}, index=dates)
 
-def test_stochastic_oscillator_strategy(sample_data):
-    signals = stochastic_oscillator_strategy(sample_data)
+def test_bollinger_bands(sample_data):
+    # Run the strategy
+    signals = bollinger_bands(sample_data)
 
-    assert isinstance(signals, pd.DataFrame)
+    # Check if the signals are generated correctly
+    assert len(signals) == len(sample_data)
     assert 'signal' in signals.columns
-    assert 'positions' in signals.columns
-    assert '%K' in signals.columns
-    assert '%D' in signals.columns
+    assert 'upper' in signals.columns
+    assert 'lower' in signals.columns
+    assert 'middle' in signals.columns
 
-    # Check if signals are either -1, 0, or 1
-    unique_signals = set(signals['signal'].unique())
-    print("Unique Signals:", unique_signals)
-    assert unique_signals.issubset({-1, 0, 1})
+    # Check if there are both buy and sell signals
+    assert (signals['signal'] == 1).any(), "No buy signals generated"
+    assert (signals['signal'] == -1).any(), "No sell signals generated"
 
-    # Check if positions are -2, -1, 0, 1, or 2
-    unique_positions = set(signals['positions'].unique())
-    print("Unique Positions:", unique_positions)
-    assert unique_positions.issubset({-2, -1, 0, 1, 2})
+    # Check if Bollinger Bands are calculated correctly
+    assert np.isclose(signals['middle'].iloc[BOLLINGER_WINDOW-1], sample_data['Close'].iloc[:BOLLINGER_WINDOW].mean(), rtol=1e-5)
+    
+    expected_upper = (
+        signals['middle'].iloc[BOLLINGER_WINDOW-1] + 
+        BOLLINGER_NUM_STD * sample_data['Close'].iloc[:BOLLINGER_WINDOW].std()
+    )
+    assert np.isclose(signals['upper'].iloc[BOLLINGER_WINDOW-1], expected_upper, rtol=1e-5)
+    
+    expected_lower = (
+        signals['middle'].iloc[BOLLINGER_WINDOW-1] - 
+        BOLLINGER_NUM_STD * sample_data['Close'].iloc[:BOLLINGER_WINDOW].std()
+    )
+    assert np.isclose(signals['lower'].iloc[BOLLINGER_WINDOW-1], expected_lower, rtol=1e-5)
+
+def test_execute_bollinger_hand_crossover_strategy(sample_data):
+    # Run the strategy
+    signals = bollinger_bands(sample_data)
+    signals = execute_bollinger_hand_crossover_strategy(signals)
+
+    # Check if cumulative returns and strategy returns are calculated
+    assert 'cumulative_returns' in signals.columns
+    assert 'cumulative_strategy_returns' in signals.columns
+
+    # Check lengths
+    assert len(signals) == len(sample_data)
+
+    # Check if initial capital is correctly managed
+    initial_capital = INITIAL_CAPITAL
+    assert signals['cumulative_returns'].iloc[0] == initial_capital, "Initial capital not set correctly."
+    assert signals['cumulative_strategy_returns'].iloc[0] == 0, "Initial strategy return should be zero."
+
+    # Check for NaN values
+    assert signals['cumulative_returns'].isnull().sum() == 0, "Cumulative returns contain NaN values."
+    assert signals['cumulative_strategy_returns'].isnull().sum() == 0, "Cumulative strategy returns contain NaN values."
+
+    # Ensure cumulative returns change
+    assert signals['cumulative_returns'].iloc[-1] != initial_capital, "Cumulative returns did not change."

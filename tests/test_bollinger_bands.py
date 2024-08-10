@@ -56,15 +56,23 @@ def test_execute_bollinger_hand_crossover_strategy():
 
     # Run the strategy
     signals = bollinger_bands(data)
-    executed_signals = execute_bollinger_hand_crossover_strategy(signals)
+    signals = execute_bollinger_hand_crossover_strategy(signals)
 
-    # Check if portfolio value is calculated
-    assert 'portfolio_value' in executed_signals.columns
-    assert len(executed_signals['portfolio_value']) == len(signals)
+    # Check if cumulative returns and strategy returns are calculated
+    assert 'cumulative_returns' in signals.columns
+    assert 'cumulative_strategy_returns' in signals.columns
+
+    # Check lengths
+    assert len(signals) == len(signals)
 
     # Check if initial capital is correctly managed
     initial_capital = INITIAL_CAPITAL
-    assert executed_signals['portfolio_value'].iloc[0] == initial_capital
+    assert signals['cumulative_returns'].iloc[0] == initial_capital, "Initial capital not set correctly."
+    assert signals['cumulative_strategy_returns'].iloc[0] == 0, "Initial strategy return should be zero."
 
-    # Ensure portfolio value changes
-    assert executed_signals['portfolio_value'].iloc[-1] != initial_capital
+    # Check for NaN values
+    assert signals['cumulative_returns'].isnull().sum() == 0, "Cumulative returns contain NaN values."
+    assert signals['cumulative_strategy_returns'].isnull().sum() == 0, "Cumulative strategy returns contain NaN values."
+
+    # Ensure cumulative returns change
+    assert signals['cumulative_returns'].iloc[-1] != initial_capital, "Cumulative returns did not change."

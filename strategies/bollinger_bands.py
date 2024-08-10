@@ -39,7 +39,8 @@ def execute_bollinger_hand_crossover_strategy(signals):
     """
     initial_capital = INITIAL_CAPITAL  # Starting capital
     shares = 0  # Number of shares held
-    portfolio_value = []
+    cumulative_returns = []
+    cumulative_strategy_returns = []
 
     for index, row in signals.iterrows():
         if row['positions'] == 1:  # Buy signal
@@ -51,7 +52,14 @@ def execute_bollinger_hand_crossover_strategy(signals):
         
         # Calculate total portfolio value
         total_value = initial_capital + (shares * row['price'])
-        portfolio_value.append(total_value)
+        cumulative_returns.append(total_value)
 
-    signals['portfolio_value'] = portfolio_value
+        # Calculate cumulative strategy returns (percentage change)
+        if total_value > INITIAL_CAPITAL:
+            cumulative_strategy_returns.append((total_value - INITIAL_CAPITAL) / INITIAL_CAPITAL)
+        else:
+            cumulative_strategy_returns.append(0)
+
+    signals['cumulative_returns'] = cumulative_returns
+    signals['cumulative_strategy_returns'] = cumulative_strategy_returns
     return signals

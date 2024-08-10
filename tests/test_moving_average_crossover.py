@@ -42,21 +42,21 @@ def sample_data():
     }, index=dates)
 
 def test_execute_ma_crossover_strategy(sample_data):
-    results = execute_moving_average_crossover(sample_data)
+    signals = execute_moving_average_crossover(sample_data)
 
-    assert isinstance(results, pd.DataFrame)
-    assert 'price' in results.columns
-    assert 'short_mavg' in results.columns
-    assert 'long_mavg' in results.columns
-    assert 'signal' in results.columns
-    assert 'positions' in results.columns
-    assert 'cumulative_strategy_returns' in results.columns
+    assert isinstance(signals, pd.DataFrame)
+    assert 'price' in signals.columns
+    assert 'short_mavg' in signals.columns
+    assert 'long_mavg' in signals.columns
+    assert 'signal' in signals.columns
+    assert 'positions' in signals.columns
+    assert 'cumulative_strategy_returns' in signals.columns
 
     # Check for NaN values in cumulative_strategy_returns
-    assert results['cumulative_strategy_returns'].isnull().sum() == 0, "Cumulative strategy returns contain NaN values."
+    assert signals['cumulative_strategy_returns'].isnull().sum() == 0, "Cumulative strategy returns contain NaN values."
 
     # Check if cumulative strategy returns are calculated correctly
-    assert (results['cumulative_strategy_returns'] >= 0).all()  # Ensure non-negative
+    assert (signals['cumulative_strategy_returns'] >= 0).all()  # Ensure non-negative
     
     # Check if final cumulative strategy return is different from initial capital
-    assert results['cumulative_strategy_returns'].iloc[-1] != INITIAL_CAPITAL
+    assert signals['cumulative_strategy_returns'].iloc[-1] != INITIAL_CAPITAL

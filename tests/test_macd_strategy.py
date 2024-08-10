@@ -6,8 +6,8 @@ from numpy.testing import assert_almost_equal
 import pytest
 import pandas as pd
 import numpy as np
-from strategies.macd_strategy import macd_strategy
-from config import MACD_FAST, MACD_SLOW, MACD_SIGNAL
+from strategies.macd_strategy import macd_strategy, execute_macd_strategy
+from config import MACD_FAST, MACD_SLOW, MACD_SIGNAL, INITIAL_CAPITAL
 
 def test_macd_strategy():
     # Create sample data
@@ -49,5 +49,21 @@ def test_macd_strategy():
              signals['macd'].iloc[i] < signals['signal_line'].iloc[i]:
             assert signals['signal'].iloc[i] == -1
 
-if __name__ == "__main__":
-    pytest.main()
+def test_execute_macd_strategy():
+    # Create sample data
+    dates = pd.date_range(start='2020-01-01', periods=300, freq='D')
+    data = pd.DataFrame({
+        'Close': np.random.randn(300).cumsum() + 100
+    }, index=dates)
+
+    # Run the execute strategy
+    signals = execute_macd_strategy(data)
+
+    # Check if the signals DataFrame is returned correctly
+    assert len(signals) == len(data)
+    assert 'cumulative_strategy_returns' in signals.columns
+    assert 'strategy_returns' in signals.columns
+
+    # Check if cumulative returns are calculated
+    assert signals['cumulative_strategy_returns'].iloc[0] == INITIAL_CAPITAL
+    assert (signals['cumulative_strategy_returns'].iloc[-1] >= 0)
