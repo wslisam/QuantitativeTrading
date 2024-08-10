@@ -1,16 +1,13 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from numpy.testing import assert_almost_equal
-
-import pytest
-import pandas as pd
 import numpy as np
-from strategies.moving_average_crossover import moving_average_crossover
-from config import MOVING_AVERAGE_SHORT_WINDOW, MOVING_AVERAGE_LONG_WINDOW
+import pandas as pd
+import pytest
+from numpy.testing import assert_almost_equal
+from strategies.moving_average_crossover import moving_average_crossover, execute_moving_average_crossover
+from config import MOVING_AVERAGE_SHORT_WINDOW, MOVING_AVERAGE_LONG_WINDOW, INITIAL_CAPITAL
 
 def test_moving_average_crossover():
     # Create sample data
+    np.random.seed(42)  # Set seed for reproducibility
     dates = pd.date_range(start='2020-01-01', periods=300, freq='D')
     data = pd.DataFrame({
         'Close': np.random.randn(300).cumsum() + 100
@@ -31,10 +28,38 @@ def test_moving_average_crossover():
 
     # Check if moving averages are calculated correctly
     short_window_mean = data['Close'].iloc[:MOVING_AVERAGE_SHORT_WINDOW].mean()
-    assert_almost_equal(signals['short_mavg'].iloc[MOVING_AVERAGE_SHORT_WINDOW-1], short_window_mean, decimal=5)
+    assert_almost_equal(signals['short_mavg'].iloc[MOVING_AVERAGE_SHORT_WINDOW - 1], short_window_mean, decimal=5)
     
     long_window_mean = data['Close'].iloc[:MOVING_AVERAGE_LONG_WINDOW].mean()
-    assert_almost_equal(signals['long_mavg'].iloc[MOVING_AVERAGE_LONG_WINDOW-1], long_window_mean, decimal=5)
+    assert_almost_equal(signals['long_mavg'].iloc[MOVING_AVERAGE_LONG_WINDOW - 1], long_window_mean, decimal=5)
+
+@pytest.fixture
+def sample_data():
+    # Create sample data for the execute test
+    dates = pd.date_range(start='2020-01-01', periods=300, freq='D')
+    return pd.DataFrame({
+        'Close': np.random.randn(300).cumsum() + 100
+    }, index=dates)
+
+def test_execute_ma_crossover_strategy(sample_data):
+    results = execute_moving_average_crossover(sample_data)
+
+    assert isinstance(results, pd.DataFrame)
+    assert 'price' in results.columns
+    assert 'short_mavg' in results.columns
+    assert 'long_mavg' in results.columns
+    assert 'signal' in results.columns
+    assert 'positions' in results.columns
+    assert 'cumulative_strategy_returns' in results.columns
+
+    # Check for NaN values in cumulative_strategy_returns
+    assert results['cumulative_strategy_returns'].isnull().sum() == 0, "Cumulative strategy returns contain NaN values."
+
+    # Check if cumulative strategy returns are calculated correctly
+    assert (results['cumulative_strategy_returns'] >= 0).all()  # Ensure non-negative
+    
+    # Check if final cumulative strategy return is different from initial capital
+    assert results['cumulative_strategy_returns'].iloc[-1] != INITIAL_CAPITAL
 
 if __name__ == "__main__":
     pytest.main()
