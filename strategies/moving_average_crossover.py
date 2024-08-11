@@ -30,7 +30,7 @@ def moving_average_crossover(data, short_window=MOVING_AVERAGE_SHORT_WINDOW, lon
 
     return signals
 
-def execute_moving_average_crossover(data, initial_capital=INITIAL_CAPITAL, short_window=MOVING_AVERAGE_SHORT_WINDOW, long_window=MOVING_AVERAGE_LONG_WINDOW):
+def execute_moving_average_crossover_strategy(data, initial_capital=INITIAL_CAPITAL, short_window=MOVING_AVERAGE_SHORT_WINDOW, long_window=MOVING_AVERAGE_LONG_WINDOW):
     """
     Execute the Moving Average Crossover strategy and calculate returns.
     

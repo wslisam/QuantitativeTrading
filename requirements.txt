@@ -7,3 +7,5 @@ pytest
 ta
 scipy
 scikit-learn
+streamlit 
+plotly 

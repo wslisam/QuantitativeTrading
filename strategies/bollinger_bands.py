@@ -33,7 +33,7 @@ def bollinger_bands(data, window=BOLLINGER_WINDOW, num_std=BOLLINGER_NUM_STD):
 
     return signals
 
-def execute_bollinger_hand_crossover_strategy(signals):
+def execute_bollinger_bands_strategy(signals):
     """
     Execute the trading strategy based on Bollinger Bands signals.
     """
