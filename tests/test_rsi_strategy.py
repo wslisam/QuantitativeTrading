@@ -19,7 +19,7 @@ def create_sample_data():
             change = 10 if len(prices) % 80 == 0 else -10
         prices.append(max(prices[-1] + change, 1))  # Ensure price doesn't go negative
 
-    return pd.DataFrame({'close': prices}, index=dates)
+    return pd.DataFrame({'Close': prices}, index=dates)
 
 @pytest.fixture
 def sample_data():

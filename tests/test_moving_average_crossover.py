@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_almost_equal
-from strategies.moving_average_crossover import moving_average_crossover, execute_moving_average_crossover
+from strategies.moving_average_crossover import moving_average_crossover, execute_moving_average_crossover_strategy
 from config import MOVING_AVERAGE_SHORT_WINDOW, MOVING_AVERAGE_LONG_WINDOW, INITIAL_CAPITAL
 
 def test_moving_average_crossover():
@@ -42,7 +42,7 @@ def sample_data():
     }, index=dates)
 
 def test_execute_ma_crossover_strategy(sample_data):
-    signals = execute_moving_average_crossover(sample_data)
+    signals = execute_moving_average_crossover_strategy(sample_data)
 
     assert isinstance(signals, pd.DataFrame)
     assert 'price' in signals.columns

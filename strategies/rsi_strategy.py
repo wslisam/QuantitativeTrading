@@ -6,11 +6,11 @@ def calculate_rsi(data: pd.DataFrame, period: int = RSI_WINDOW) -> pd.Series:
     """
     Calculate the Relative Strength Index (RSI).
     
-    :param data: DataFrame with 'close' price column
+    :param data: DataFrame with 'Close' price column
     :param period: The period over which to calculate the RSI
     :return: Series with RSI values
     """
-    delta = data['close'].diff()
+    delta = data['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     
@@ -25,14 +25,14 @@ def rsi_strategy(data: pd.DataFrame, period: int = RSI_WINDOW,
     """
     Generate buy and sell signals using RSI strategy.
     
-    :param data: DataFrame with 'close' price column
+    :param data: DataFrame with 'Close' price column
     :param period: The period over which to calculate the RSI
     :param overbought: The overbought threshold
     :param oversold: The oversold threshold
     :return: DataFrame with signals
     """
     signals = pd.DataFrame(index=data.index)
-    signals['price'] = data['close']
+    signals['price'] = data['Close']
     signals['rsi'] = calculate_rsi(data, period)
     
     # Create signals
@@ -52,7 +52,7 @@ def execute_rsi_strategy(data: pd.DataFrame, initial_capital: float = INITIAL_CA
                          oversold: float = RSI_OVERSOLD) -> pd.DataFrame:
     signals = rsi_strategy(data, period, overbought, oversold)
 
-    signals['returns'] = data['close'].pct_change().fillna(0)
+    signals['returns'] = data['Close'].pct_change().fillna(0) 
 
     shares = 0
     capital = initial_capital

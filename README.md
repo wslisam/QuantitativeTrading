@@ -47,6 +47,8 @@ To run the tests, use the following command:
 
 pytest tests/
 
+To generate a coverage report:
+pytest --cov=strageies --cov-report=html tests/
 
 ## Contributing
 
