@@ -1,11 +1,11 @@
 # QuantitativeTrading
 Quantitative Trading 
 
-An algorithmic trading system.
+Tool for Algorithmic trading strategy visualization
 
 ## Features
 
-- Multiple trading strategies (Moving Average Crossover, RSI)
+- Multiple trading strategies (Moving Average Crossover, RSI , Bollinger_bands)
 - Backtesting engine with performance metrics
 - Interactive GUI for strategy selection and visualization
 - Risk management utilities
@@ -42,10 +42,16 @@ $ xcode-select --install
 $ pip install watchdog
 
 This will launch the GUI where you can:
-1. Enter a stock symbol
-2. Select a trading strategy
-3. Run a backtest
-4. View performance metrics and charts
+
+1. **Enter a Stock Symbol**: Input the ticker symbol of the stock you wish to analyze (e.g., AAPL, TSLA).
+2. **Select a Trading Strategy**: Choose from various available strategies, including:
+   - Moving Average Crossover
+   - RSI (Relative Strength Index)
+   - Bollinger Bands
+3. **Configure Parameters**: Adjust strategy parameters as needed to customize your backtest.
+4. **Run a Backtest**: Execute the strategy over the selected date range and analyze its performance.
+5. **View Performance Metrics**: Access key performance indicators such as total return and final portfolio value.
+6. **Visualize Results**: Interactively explore charts displaying price movements, buy/sell signals, and trading volume.
 
 ## Running Tests
 
