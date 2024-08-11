@@ -31,9 +31,15 @@ pip install -r requirements.txt
 
 Run the main application:
 
-python main.py
+streamlit run main.py
 
+You can now view your Streamlit app in your browser.
 
+Local URL: http://localhost:8501
+
+For better performance, install the Watchdog module:
+$ xcode-select --install
+$ pip install watchdog
 
 This will launch the GUI where you can:
 1. Enter a stock symbol
