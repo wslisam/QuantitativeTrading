@@ -64,9 +64,9 @@ def main():
     
     # Strategy descriptions
     strategy_descriptions = {
-        'Moving Average Crossover': 'This strategy uses the crossover of two moving averages to generate buy and sell signals.',
-        'RSI': 'The Relative Strength Index (RSI) indicates overbought or oversold conditions.',
-        'Bollinger Bands': 'Bollinger Bands provide a range of price levels based on volatility.'
+        'Moving Average Crossover': 'This strategy identify potential buy and sell signals. It works by comparing two moving averages: a short-term and a long-term. When the short-term average crosses above the long-term average, it indicates a bullish trend, suggesting it is a good time to buy. Conversely, when the short-term average crosses below, it signals a bearish trend, suggesting a sell or hold position.',
+        'RSI': 'The Relative Strength Index (RSI) identify potential buy and sell signals based on momentum. It measures the speed and change of price movements, with values ranging from 0 to 100. An RSI above 70 indicates that an asset may be overbought, signaling a potential sell opportunity. Conversely, an RSI below 30 suggests the asset is oversold, presenting a potential buy opportunity. Monitoring these levels helps gauge market conditions effectively.',
+        'Bollinger Bands': 'Bollinger Bands identify buy and sell signals based on price movements relative to three bands: a middle band (simple moving average), an upper band, and a lower band, calculated using standard deviations. A buy signal occurs when the price falls below the lower band, indicating possible overselling and a potential price bounce back. Conversely, a sell signal is generated when the price rises above the upper band, suggesting overbuying and a likely price correction.'
     }
     
     st.sidebar.info(strategy_descriptions[strategy])
