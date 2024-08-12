@@ -53,6 +53,9 @@ This will launch the GUI where you can:
 5. **View Performance Metrics**: Access key performance indicators such as total return and final portfolio value.
 6. **Visualize Results**: Interactively explore charts displaying price movements, buy/sell signals, and trading volume.
 
+Useful links:
+https://blog.jiatool.com/posts/streamlit_2023/
+
 ## Running Tests
 
 To run the tests, use the following command:
