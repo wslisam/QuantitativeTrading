@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from strategies import *
 from datetime import timedelta
+from utils.portfolio_optimization import *
 
 # Function to load data
 @st.cache_data
@@ -46,7 +47,6 @@ def calculate_metrics(signals):
     total_return = (final_value / initial_investment - 1) * 100
     
     num_trades = len(signals[signals['positions'] != 0])
-    # win_rate = (signals['positions'] == 1).sum() / num_trades * 100
     
     # Calculate Sharpe Ratio
     returns = signals['cumulative_strategy_returns'].pct_change().dropna()
@@ -63,10 +63,58 @@ def calculate_metrics(signals):
         "final_value": final_value,
         "total_return": total_return,
         "num_trades": num_trades,
-        # "win_rate": win_rate,
         "sharpe_ratio": sharpe_ratio,
         "max_drawdown": max_drawdown
     }
+    
+def optimize_and_plot_portfolio(tickers, start_date, end_date, min_weight=0.05, max_weight=0.4, min_assets=3, risk_free_rate=0.02):
+    # Download data for all tickers
+    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
+    returns = data.pct_change().dropna()
+
+    # Optimize portfolio
+    weights = safe_optimize_portfolio(returns, min_weight, max_weight, min_assets)
+
+    # Calculate portfolio performance
+    portfolio_return, portfolio_volatility = portfolio_performance(weights, returns)
+
+    # Calculate Sharpe Ratio
+    sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_volatility
+
+    # Create a pie chart of optimal weights
+    fig = go.Figure(data=[go.Pie(labels=tickers, values=weights, textinfo='label+percent', hole=.3)])
+    fig.update_layout(title_text="Optimal Portfolio Weights")
+
+    # Calculate individual asset returns and volatilities
+    asset_returns = returns.mean() * 252
+    asset_volatilities = returns.std() * np.sqrt(252)
+
+    # Create a scatter plot of individual assets
+    scatter_fig = go.Figure()
+    scatter_fig.add_trace(go.Scatter(
+        x=asset_volatilities,
+        y=asset_returns,
+        mode='markers+text',
+        marker=dict(size=10, color=asset_returns, colorscale='Viridis', showscale=True),
+        text=tickers,
+        textposition="top center"
+    ))
+    scatter_fig.add_trace(go.Scatter(
+        x=[portfolio_volatility],
+        y=[portfolio_return],
+        mode='markers+text',
+        marker=dict(size=15, color='red', symbol='star'),
+        text=['Optimized Portfolio'],
+        textposition="top center"
+    ))
+    scatter_fig.update_layout(
+        title='Asset Risk-Return Profile',
+        xaxis_title='Volatility (Risk)',
+        yaxis_title='Expected Return',
+        showlegend=False
+    )
+
+    return fig, scatter_fig, weights, portfolio_return, portfolio_volatility, sharpe_ratio
 
 # Streamlit app
 def main():
@@ -158,16 +206,72 @@ def main():
     st.write("- The green triangles on the chart indicate buy signals.")
     st.write("- The red triangles on the chart indicate sell signals.")
     st.write("- The strategy's performance is based on these signals and the stock's price movements.")
-    # st.write("- The bottom chart compares the cumulative returns of the strategy (purple) to the market returns (orange).")
     
     st.subheader("Performance Metrics Explained")
     st.write("- **Total Return**: The overall percentage gain or loss from the strategy.")
     st.write("- **Number of Trades**: The total number of buy and sell transactions executed.")
-    # st.write("- **Win Rate**: The percentage of trades that resulted in a profit.")
     st.write("- **Sharpe Ratio**: A measure of risk-adjusted return. A higher Sharpe ratio indicates better risk-adjusted performance.")
     st.write("- **Max Drawdown**: The maximum observed loss from a peak to a trough, before a new peak is attained. It's a measure of downside risk.")
     
     st.info("Note: Past performance does not guarantee future results. This tool is for educational purposes only and should not be considered as financial advice.")
+
+    # Portfolio Optimization Section
+    st.header("Portfolio Optimization")
+    st.write("Optimize a portfolio by selecting multiple stocks:")
+
+    # Multi-select for tickers
+    portfolio_tickers = st.multiselect("Select stocks for portfolio (3-10 recommended)", 
+                                    ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'JNJ', 'V'],
+                                    default=['AAPL', 'GOOGL', 'MSFT'])
+
+    if len(portfolio_tickers) >= 3:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            min_weight = st.slider("Minimum weight per asset", 0.01, 0.1, 0.05, 0.01)
+        with col2:
+            max_weight = st.slider("Maximum weight per asset", 0.2, 0.5, 0.4, 0.05)
+        with col3:
+            min_assets = st.slider("Minimum number of assets", 2, len(portfolio_tickers), 3, 1)
+        
+        longer_period = st.checkbox("Use 5-year historical data for optimization")
+        opt_start_date = start_date - pd.DateOffset(years=4) if longer_period else start_date
+        
+        risk_free_rate = st.slider("Risk-free rate (%)", 0.0, 5.0, 2.0, 0.1) / 100
+        
+        with st.spinner('Optimizing portfolio...'):
+            pie_fig, scatter_fig, weights, portfolio_return, portfolio_volatility, sharpe_ratio = optimize_and_plot_portfolio(
+                portfolio_tickers, opt_start_date, end_date, min_weight, max_weight, min_assets, risk_free_rate
+            )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(pie_fig, use_container_width=True)
+        with col2:
+            st.plotly_chart(scatter_fig, use_container_width=True)
+        
+        st.subheader("Optimization Results")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Expected Annual Return", f"{portfolio_return:.2%}")
+        with col2:
+            st.metric("Expected Annual Volatility", f"{portfolio_volatility:.2%}")
+        with col3:
+            st.metric("Sharpe Ratio", f"{sharpe_ratio:.2f}")
+        
+        # Display weights
+        st.subheader("Optimal Portfolio Weights")
+        weight_df = pd.DataFrame({'Stock': portfolio_tickers, 'Weight': weights})
+        weight_df = weight_df.sort_values('Weight', ascending=False).reset_index(drop=True)
+        st.dataframe(weight_df.style.format({'Weight': '{:.2%}'}), use_container_width=True)
+        
+        # Download optimal weights
+        csv = weight_df.to_csv(index=False).encode('utf-8')
+        st.download_button("Download Optimal Weights (CSV)", csv, "optimal_portfolio_weights.csv", "text/csv")
+        
+        st.info("This optimization aims to maximize the Sharpe ratio, which balances return and risk. The results show the optimal allocation of your investment across the selected stocks to achieve the best risk-adjusted return based on historical data.")
+        
+    else:
+        st.warning("Please select at least three stocks for portfolio optimization.")
 
 if __name__ == '__main__':
     main()
