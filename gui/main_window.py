@@ -35,7 +35,7 @@ def plot_strategy_results(data, signals, strategy_name):
     # Plot strategy returns
     fig.add_trace(go.Scatter(x=signals.index, y=signals['cumulative_strategy_returns'], name='Cumulative Strategy Returns', line=dict(color='orange')), row=3, col=1)
     
-    fig.update_layout(height=800, title_text=f"{strategy_name} Strategy Results", margin=dict(l=40, r=40, t=40, b=40))
+    fig.update_layout(height=800, title_text=f"{strategy_name} Strategy Results", margin=dict(l=40, r=40, t=100, b=40))
     fig.update_xaxes(rangeslider_visible=False)
     
     return fig
