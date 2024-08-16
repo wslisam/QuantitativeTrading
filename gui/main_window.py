@@ -7,6 +7,7 @@ import numpy as np
 from strategies import *
 from datetime import timedelta
 from utils.portfolio_optimization import *
+from config import *
 
 # Function to load data
 @st.cache_data
@@ -42,7 +43,7 @@ def plot_strategy_results(data, signals, strategy_name):
 
 # Function to calculate additional metrics
 def calculate_metrics(signals):
-    initial_investment = 100000
+    initial_investment = INITIAL_CAPITAL
     final_value = signals['cumulative_strategy_returns'].iloc[-1]
     total_return = (final_value / initial_investment - 1) * 100
     
