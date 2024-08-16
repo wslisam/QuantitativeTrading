@@ -9,12 +9,9 @@ from datetime import timedelta
 from utils.portfolio_optimization import *
 from config import *
 from backtesting.backtest import Backtest
+from utils.data_fetcher import fetch_data
 
-# Function to load data
-@st.cache_data
-def load_data(ticker, start_date, end_date):
-    data = yf.download(ticker, start=start_date, end=end_date)
-    return data
+@st.cache_data  # Use the caching decorator here
 
 # Function to plot strategy results
 def plot_strategy_results(data, signals, strategy_name):
@@ -126,7 +123,7 @@ def main():
     with col1:
         # Loading data with a spinner
         with st.spinner('Loading data...'):
-            data = load_data(ticker, start_date - timedelta(days=30), end_date)  # Load extra 30 days for strategy initialization
+            data = fetch_data(ticker, start_date - timedelta(days=30), end_date)  # Load extra 30 days for strategy initialization
         
         if data.empty:
             st.error("No data found for the selected ticker and date range.")
