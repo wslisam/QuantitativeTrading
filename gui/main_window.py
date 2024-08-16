@@ -8,6 +8,7 @@ from strategies import *
 from datetime import timedelta
 from utils.portfolio_optimization import *
 from config import *
+from backtesting.backtest import Backtest
 
 # Function to load data
 @st.cache_data
@@ -40,33 +41,6 @@ def plot_strategy_results(data, signals, strategy_name):
     fig.update_xaxes(rangeslider_visible=False)
     
     return fig
-
-# Function to calculate additional metrics
-def calculate_metrics(signals):
-    initial_investment = INITIAL_CAPITAL
-    final_value = signals['cumulative_strategy_returns'].iloc[-1]
-    total_return = (final_value / initial_investment - 1) * 100
-    
-    num_trades = len(signals[signals['positions'] != 0])
-    
-    # Calculate Sharpe Ratio
-    returns = signals['cumulative_strategy_returns'].pct_change().dropna()
-    sharpe_ratio = np.sqrt(252) * returns.mean() / returns.std()
-    
-    # Calculate Maximum Drawdown
-    cumulative_returns = signals['cumulative_strategy_returns']
-    running_max = np.maximum.accumulate(cumulative_returns)
-    drawdown = (cumulative_returns - running_max) / running_max
-    max_drawdown = drawdown.min() * 100
-    
-    return {
-        "initial_investment": initial_investment,
-        "final_value": final_value,
-        "total_return": total_return,
-        "num_trades": num_trades,
-        "sharpe_ratio": sharpe_ratio,
-        "max_drawdown": max_drawdown
-    }
     
 def optimize_and_plot_portfolio(tickers, start_date, end_date, strategy, min_weight=0.05, max_weight=0.4, min_assets=3, risk_free_rate=0.02):
     data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
@@ -160,11 +134,14 @@ def main():
         
         # Execute selected strategy
         if strategy == 'Moving Average Crossover':
-            signals = execute_moving_average_crossover_strategy(data)
+            backtest = Backtest(data, execute_moving_average_crossover_strategy)
+            signals = backtest.run()
         elif strategy == 'RSI':
-            signals = execute_rsi_strategy(data)
+            backtest = Backtest(data, execute_rsi_strategy)
+            signals = backtest.run()
         elif strategy == 'Bollinger Bands':
-            signals = execute_bollinger_bands_strategy(data)
+            backtest = Backtest(data, execute_bollinger_bands_strategy)
+            signals = backtest.run()
         
         # Trim signals to match user-selected date range
         signals = signals.loc[start_date:end_date]
@@ -177,7 +154,7 @@ def main():
         st.subheader('Strategy Performance')
         
         if 'cumulative_strategy_returns' in signals.columns:
-            metrics = calculate_metrics(signals)
+            metrics = backtest.calculate_metrics(signals)
             
             col2a, col2b = st.columns(2)
             with col2a:
