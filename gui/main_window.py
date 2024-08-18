@@ -10,6 +10,7 @@ from utils.portfolio_optimization import *
 from config import *
 from backtesting.backtest import Backtest
 from utils.data_fetcher import fetch_data
+from utils.risk_management import calculate_position_size, trailing_stop_loss 
 
 @st.cache_data  # Use the caching decorator here
 
@@ -259,6 +260,33 @@ def main():
         
     else:
         st.warning("Please select at least three stocks for portfolio optimization.")
+        
+    st.header("Risk Management")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        portfolio_value = st.number_input("Portfolio Value ($)", min_value=1000, value=10000, step=1000)
+        risk_per_trade = st.slider("Risk per Trade (%)", min_value=0.5, max_value=5.0, value=1.0, step=0.1) / 100
+    
+    with col2:
+        stop_loss_percent = st.slider("Stop Loss (%)", min_value=1.0, max_value=10.0, value=2.0, step=0.1) / 100
+        trailing_percent = st.slider("Trailing Stop (%)", min_value=1.0, max_value=10.0, value=1.5, step=0.1) / 100
+    
+    # Calculate position size
+    position_size = calculate_position_size(portfolio_value, risk_per_trade, stop_loss_percent)
+    st.metric("Recommended Position Size ($)", f"{position_size:.2f}")
+    
+    # Calculate trailing stop loss
+    if 'data' in locals() and not data.empty:
+        entry_price = data['Close'].iloc[-1]  # Use the last closing price as entry price
+        current_stop_loss = trailing_stop_loss(data, entry_price, stop_loss_percent, trailing_percent)
+        st.metric("Current Trailing Stop Loss ($)", f"{current_stop_loss:.2f}")
+    else:
+        st.warning("Please load stock data to calculate trailing stop loss.")
+    
+    st.info("The position size is calculated based on your portfolio value and risk parameters. The trailing stop loss is updated based on the current price movement.")
+
 
 if __name__ == '__main__':
     main()
