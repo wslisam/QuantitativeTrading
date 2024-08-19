@@ -12,8 +12,14 @@ from backtesting.backtest import Backtest
 from utils.data_fetcher import fetch_data
 from utils.risk_management import calculate_position_size, trailing_stop_loss 
 
-@st.cache_data  # Use the caching decorator here
-
+# Strategy descriptions
+strategy_descriptions = {
+    'Moving Average Crossover': 'This strategy identify potential buy and sell signals. It works by comparing two moving averages: a short-term and a long-term. When the short-term average crosses above the long-term average, it indicates a bullish trend, suggesting it is a good time to buy. Conversely, when the short-term average crosses below, it signals a bearish trend, suggesting a sell or hold position.',
+    'RSI': 'The Relative Strength Index (RSI) identify potential buy and sell signals based on momentum. It measures the speed and change of price movements, with values ranging from 0 to 100. An RSI above 70 indicates that an asset may be overbought, signaling a potential sell opportunity. Conversely, an RSI below 30 suggests the asset is oversold, presenting a potential buy opportunity. Monitoring these levels helps gauge market conditions effectively.',
+    'Bollinger Bands': 'Bollinger Bands identify buy and sell signals based on price movements relative to three bands: a middle band (simple moving average), an upper band, and a lower band, calculated using standard deviations. A buy signal occurs when the price falls below the lower band, indicating possible overselling and a potential price bounce back. Conversely, a sell signal is generated when the price rises above the upper band, suggesting overbuying and a likely price correction.'
+}
+    
+@st.cache_data  # the caching decorator
 # Function to plot strategy results
 def plot_strategy_results(data, signals, strategy_name):
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, 
@@ -39,6 +45,48 @@ def plot_strategy_results(data, signals, strategy_name):
     fig.update_xaxes(rangeslider_visible=False)
     
     return fig
+
+def risk_management_section(data):
+    st.header("Risk Management")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        portfolio_value = st.number_input("Portfolio Value ($)", min_value=1000, value=10000, step=1000)
+        risk_per_trade = st.slider("Risk per Trade (%)", min_value=0.5, max_value=5.0, value=1.0, step=0.1) / 100
+    
+    with col2:
+        stop_loss_percent = st.slider("Stop Loss (%)", min_value=1.0, max_value=10.0, value=2.0, step=0.1) / 100
+        trailing_percent = st.slider("Trailing Stop (%)", min_value=1.0, max_value=10.0, value=1.5, step=0.1) / 100
+    
+    # Calculate position size
+    position_size = calculate_position_size(portfolio_value, risk_per_trade, stop_loss_percent)
+    max_loss = portfolio_value * risk_per_trade
+    
+    st.metric("Recommended Position Size ($)", f"{position_size:.2f}")
+    st.metric("Maximum Loss per Trade ($)", f"{max_loss:.2f}")
+    
+    # Calculate trailing stop loss
+    if not data.empty:
+        entry_price = data['Close'].iloc[-1]  # Use the last closing price as entry price
+        current_stop_loss = trailing_stop_loss(data, entry_price, stop_loss_percent, trailing_percent)
+        st.metric("Current Trailing Stop Loss ($)", f"{current_stop_loss:.2f}")
+        
+        # Calculate potential loss
+        potential_loss = (entry_price - current_stop_loss) * (position_size / entry_price)
+        st.metric("Potential Loss ($)", f"{potential_loss:.2f}")
+    else:
+        st.warning("Please load stock data to calculate trailing stop loss.")
+    
+    st.info("""
+    Risk Management Explanation:
+    - Position Size: The amount you should invest based on your risk tolerance.
+    - Maximum Loss: The maximum amount you're willing to lose on this trade.
+    - Trailing Stop Loss: A dynamic stop loss that adjusts as the price moves in your favor.
+    - Potential Loss: The estimated loss if the stop loss is triggered.
+    
+    Always ensure that your potential loss aligns with your risk tolerance.
+    """)
     
 def optimize_and_plot_portfolio(tickers, start_date, end_date, strategy, min_weight=0.05, max_weight=0.4, min_assets=3, risk_free_rate=0.02):
     data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
@@ -90,11 +138,7 @@ def optimize_and_plot_portfolio(tickers, start_date, end_date, strategy, min_wei
 
     return fig, scatter_fig, weights, portfolio_return, portfolio_volatility, performance_metric, metric_name
 
-# Streamlit app
-def main():
-    st.set_page_config(layout="wide", page_title="Trading Strategy Visualization")
-    st.title('Trading Strategy Visualization')
-    
+def strategy_configuration_sidebar():
     # Sidebar for user input
     st.sidebar.header('Strategy Configuration')
     ticker = st.sidebar.text_input('Enter Stock Ticker', 'AAPL', help="Enter a valid stock ticker symbol (e.g., AAPL, TSLA).")
@@ -106,18 +150,19 @@ def main():
         st.sidebar.error("End date must be after start date.")
         return
     
-    strategy = st.sidebar.selectbox('Choose a Trading Strategy', 
-                                    ['Moving Average Crossover', 'RSI', 'Bollinger Bands'])
-    
-    # Strategy descriptions
-    strategy_descriptions = {
-        'Moving Average Crossover': 'This strategy identify potential buy and sell signals. It works by comparing two moving averages: a short-term and a long-term. When the short-term average crosses above the long-term average, it indicates a bullish trend, suggesting it is a good time to buy. Conversely, when the short-term average crosses below, it signals a bearish trend, suggesting a sell or hold position.',
-        'RSI': 'The Relative Strength Index (RSI) identify potential buy and sell signals based on momentum. It measures the speed and change of price movements, with values ranging from 0 to 100. An RSI above 70 indicates that an asset may be overbought, signaling a potential sell opportunity. Conversely, an RSI below 30 suggests the asset is oversold, presenting a potential buy opportunity. Monitoring these levels helps gauge market conditions effectively.',
-        'Bollinger Bands': 'Bollinger Bands identify buy and sell signals based on price movements relative to three bands: a middle band (simple moving average), an upper band, and a lower band, calculated using standard deviations. A buy signal occurs when the price falls below the lower band, indicating possible overselling and a potential price bounce back. Conversely, a sell signal is generated when the price rises above the upper band, suggesting overbuying and a likely price correction.'
-    }
+    strategy = st.sidebar.selectbox("Choose a Trading Strategy", list(strategy_descriptions.keys()))
     
     st.sidebar.info(strategy_descriptions[strategy])
+    return ticker, start_date, end_date, strategy
     
+
+# Streamlit app
+def main():
+    st.set_page_config(layout="wide", page_title="Trading Strategy Visualization")
+    st.title('Trading Strategy Visualization')
+    
+    ticker, start_date, end_date, strategy = strategy_configuration_sidebar()
+
     # Main content area
     col1, col2 = st.columns([2, 1])
     
@@ -260,33 +305,8 @@ def main():
         
     else:
         st.warning("Please select at least three stocks for portfolio optimization.")
-        
-    st.header("Risk Management")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        portfolio_value = st.number_input("Portfolio Value ($)", min_value=1000, value=10000, step=1000)
-        risk_per_trade = st.slider("Risk per Trade (%)", min_value=0.5, max_value=5.0, value=1.0, step=0.1) / 100
-    
-    with col2:
-        stop_loss_percent = st.slider("Stop Loss (%)", min_value=1.0, max_value=10.0, value=2.0, step=0.1) / 100
-        trailing_percent = st.slider("Trailing Stop (%)", min_value=1.0, max_value=10.0, value=1.5, step=0.1) / 100
-    
-    # Calculate position size
-    position_size = calculate_position_size(portfolio_value, risk_per_trade, stop_loss_percent)
-    st.metric("Recommended Position Size ($)", f"{position_size:.2f}")
-    
-    # Calculate trailing stop loss
-    if 'data' in locals() and not data.empty:
-        entry_price = data['Close'].iloc[-1]  # Use the last closing price as entry price
-        current_stop_loss = trailing_stop_loss(data, entry_price, stop_loss_percent, trailing_percent)
-        st.metric("Current Trailing Stop Loss ($)", f"{current_stop_loss:.2f}")
-    else:
-        st.warning("Please load stock data to calculate trailing stop loss.")
-    
-    st.info("The position size is calculated based on your portfolio value and risk parameters. The trailing stop loss is updated based on the current price movement.")
-
+    risk_management_section(data)
 
 if __name__ == '__main__':
     main()
