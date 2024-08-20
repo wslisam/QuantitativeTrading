@@ -11,6 +11,7 @@ from config import *
 from backtesting.backtest import Backtest
 from utils.data_fetcher import fetch_data
 from utils.risk_management import calculate_position_size, trailing_stop_loss 
+import time
 
 # Strategy descriptions
 strategy_descriptions = {
@@ -22,16 +23,14 @@ strategy_descriptions = {
 @st.cache_data  # the caching decorator
 # Function to plot strategy results
 def plot_strategy_results(data, signals, strategy_name):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, 
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.12, 
                         subplot_titles=(f'{strategy_name} Strategy', 'Volume', 'Strategy Returns'), 
                         row_heights=[0.5, 0.2, 0.3])
     
     # Plot candlestick chart
     fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='Price'), row=1, col=1)
-    
     # Plot buy signals
     fig.add_trace(go.Scatter(x=signals[signals['positions'] == 1].index, y=signals[signals['positions'] == 1]['price'], mode='markers', marker=dict(symbol='triangle-up', size=10, color='green'), name='Buy Signal'), row=1, col=1)
-    
     # Plot sell signals
     fig.add_trace(go.Scatter(x=signals[signals['positions'] == -1].index, y=signals[signals['positions'] == -1]['price'], mode='markers', marker=dict(symbol='triangle-down', size=10, color='red'), name='Sell Signal'), row=1, col=1)
     
@@ -41,8 +40,52 @@ def plot_strategy_results(data, signals, strategy_name):
     # Plot strategy returns
     fig.add_trace(go.Scatter(x=signals.index, y=signals['cumulative_strategy_returns'], name='Cumulative Strategy Returns', line=dict(color='orange')), row=3, col=1)
     
-    fig.update_layout(height=800, title_text=f"{strategy_name} Strategy Results", margin=dict(l=40, r=40, t=100, b=40))
-    fig.update_xaxes(rangeslider_visible=False)
+    fig.update_layout(
+        height=1000,  # Increased height
+        margin=dict(l=50, r=50, t=100, b=50),  # Reduced top margin
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis_rangeslider_visible=False,
+        hovermode="x unified"
+    )
+    
+    # Make the layout more responsive
+    fig.update_layout(
+        autosize=True,
+        width=None,
+    )
+    
+    # Adjust the title
+    fig.update_layout(
+        title=dict(
+            text=f"{strategy_name}<br>Strategy Results",  # Line break in title
+            y=0.97,
+            x=0.5,
+            xanchor='center',
+            yanchor='top',
+            font=dict(size=20)  # Reduced font size
+        )
+    )
+    # Ensure x-axis labels are visible and not cut off
+    fig.update_xaxes(showticklabels=True, tickangle=45)
+    
+    # Adjust y-axis to prevent cutting off labels
+    fig.update_yaxes(automargin=True)
+    
+    # Add more space between subplots
+    fig.update_layout(height=1000)
+    
+    # Increase font size for better readability
+    fig.update_layout(
+        font=dict(size=14),
+        xaxis_title_font=dict(size=16),
+        yaxis_title_font=dict(size=16)
+    )
+    
+    # Add axis labels
+    fig.update_xaxes(title_text="Date", row=3, col=1)
+    fig.update_yaxes(title_text="Price", row=1, col=1)
+    fig.update_yaxes(title_text="Volume", row=2, col=1)
+    fig.update_yaxes(title_text="Returns", row=3, col=1)
     
     return fig
 
@@ -63,18 +106,18 @@ def risk_management_section(data):
     position_size = calculate_position_size(portfolio_value, risk_per_trade, stop_loss_percent)
     max_loss = portfolio_value * risk_per_trade
     
-    st.metric("Recommended Position Size ($)", f"{position_size:.2f}")
-    st.metric("Maximum Loss per Trade ($)", f"{max_loss:.2f}")
+    col1, col2 = st.columns(2)
+    col1.metric("Recommended Position Size ($)", f"{position_size:.2f}")
+    col2.metric("Maximum Loss per Trade ($)", f"{max_loss:.2f}")
     
-    # Calculate trailing stop loss
     if not data.empty:
         entry_price = data['Close'].iloc[-1]  # Use the last closing price as entry price
         current_stop_loss = trailing_stop_loss(data, entry_price, stop_loss_percent, trailing_percent)
-        st.metric("Current Trailing Stop Loss ($)", f"{current_stop_loss:.2f}")
-        
-        # Calculate potential loss
         potential_loss = (entry_price - current_stop_loss) * (position_size / entry_price)
-        st.metric("Potential Loss ($)", f"{potential_loss:.2f}")
+        
+        col1, col2 = st.columns(2)
+        col1.metric("Current Trailing Stop Loss ($)", f"{current_stop_loss:.2f}")
+        col2.metric("Potential Loss ($)", f"{potential_loss:.2f}")
     else:
         st.warning("Please load stock data to calculate trailing stop loss.")
     
@@ -96,7 +139,7 @@ def optimize_and_plot_portfolio(tickers, start_date, end_date, strategy, min_wei
 
     portfolio_return, portfolio_volatility = portfolio_performance(weights, returns)
 
-    if strategy == 'sharpe' or strategy == 'sortino':
+    if strategy in ['sharpe', 'sortino']:
         performance_metric = (portfolio_return - risk_free_rate) / portfolio_volatility
         metric_name = f"{strategy.capitalize()} Ratio"
     elif strategy == 'max_return':
@@ -154,9 +197,7 @@ def strategy_configuration_sidebar():
     
     st.sidebar.info(strategy_descriptions[strategy])
     return ticker, start_date, end_date, strategy
-    
 
-# Streamlit app
 def main():
     st.set_page_config(layout="wide", page_title="Trading Strategy Visualization")
     st.title('Trading Strategy Visualization')
@@ -164,63 +205,53 @@ def main():
     ticker, start_date, end_date, strategy = strategy_configuration_sidebar()
 
     # Main content area
-    col1, col2 = st.columns([2, 1])
+    with st.spinner('Loading data...'):
+        progress_bar = st.progress(0)
+        for i in range(100):
+            time.sleep(0.01)
+            progress_bar.progress(i + 1)
+        data = fetch_data(ticker, start_date - timedelta(days=30), end_date)
     
-    with col1:
-        # Loading data with a spinner
-        with st.spinner('Loading data...'):
-            data = fetch_data(ticker, start_date - timedelta(days=30), end_date)  # Load extra 30 days for strategy initialization
-        
-        if data.empty:
-            st.error("No data found for the selected ticker and date range.")
-            return
-        
-        # Execute selected strategy
-        if strategy == 'Moving Average Crossover':
-            backtest = Backtest(data, execute_moving_average_crossover_strategy)
-            signals = backtest.run()
-        elif strategy == 'RSI':
-            backtest = Backtest(data, execute_rsi_strategy)
-            signals = backtest.run()
-        elif strategy == 'Bollinger Bands':
-            backtest = Backtest(data, execute_bollinger_bands_strategy)
-            signals = backtest.run()
-        
-        # Trim signals to match user-selected date range
-        signals = signals.loc[start_date:end_date]
-        
-        # Plot results
-        fig = plot_strategy_results(data.loc[start_date:end_date], signals, strategy)
-        st.plotly_chart(fig, use_container_width=True)
+    if data.empty:
+        st.error("No data found for the selected ticker and date range.")
+        return
     
-    with col2:
-        st.subheader('Strategy Performance')
-        
-        if 'cumulative_strategy_returns' in signals.columns:
-            metrics = backtest.calculate_metrics(signals)
-            
-            col2a, col2b = st.columns(2)
-            with col2a:
-                st.metric("Initial Investment", f"${metrics['initial_investment']:,.2f}")
-                st.metric("Final Portfolio Value", f"${metrics['final_value']:,.2f}")
-                st.metric("Total Return", f"{metrics['total_return']:.2f}%")
-            with col2b:
-                st.metric("Number of Trades", metrics['num_trades'])
-                st.metric("Sharpe Ratio", f"{metrics['sharpe_ratio']:.2f}")
-                st.metric("Max Drawdown", f"{metrics['max_drawdown']:.2f}%")
-            
-            # Display a sample of the signals dataframe in a better format
-            st.subheader("Signal Data (Sample)")
-            st.write("Below are the last few entries of the signal data:")
-            st.dataframe(signals[['price', 'positions', 'cumulative_strategy_returns', 'cumulative_returns']].tail(), use_container_width=True)
-            
-            # Download results
-            csv = signals.to_csv().encode('utf-8')
-            st.download_button("Download Full Strategy Results (CSV)", csv, "strategy_results.csv", "text/csv")
-        else:
-            st.warning("Strategy performance data not available.")
+    if strategy == 'Moving Average Crossover':
+        backtest = Backtest(data, execute_moving_average_crossover_strategy)
+    elif strategy == 'RSI':
+        backtest = Backtest(data, execute_rsi_strategy)
+    elif strategy == 'Bollinger Bands':
+        backtest = Backtest(data, execute_bollinger_bands_strategy)
     
-    # Additional insights and explanations
+    signals = backtest.run()
+    signals = signals.loc[start_date:end_date]
+    
+    fig = plot_strategy_results(data.loc[start_date:end_date], signals, strategy)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.subheader('Strategy Performance')
+    
+    if 'cumulative_strategy_returns' in signals.columns:
+        metrics = backtest.calculate_metrics(signals)
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Initial Investment", f"${metrics['initial_investment']:,.2f}")
+        col2.metric("Final Portfolio Value", f"${metrics['final_value']:,.2f}")
+        col3.metric("Total Return", f"{metrics['total_return']:.2f}%")
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Number of Trades", metrics['num_trades'])
+        col2.metric("Sharpe Ratio", f"{metrics['sharpe_ratio']:.2f}")
+        col3.metric("Max Drawdown", f"{metrics['max_drawdown']:.2f}%")
+        
+        st.subheader("Signal Data (Sample)")
+        st.dataframe(signals[['price', 'positions', 'cumulative_strategy_returns', 'cumulative_returns']].tail(), use_container_width=True)
+        
+        csv = signals.to_csv().encode('utf-8')
+        st.download_button("Download Full Strategy Results (CSV)", csv, "strategy_results.csv", "text/csv")
+    else:
+        st.warning("Strategy performance data not available.")
+    
     st.subheader("Strategy Insights")
     st.write(f"The {strategy} strategy was applied to {ticker} stock from {start_date} to {end_date}.")
     st.write(strategy_descriptions[strategy])
@@ -286,12 +317,9 @@ def main():
         
         st.subheader("Optimization Results")
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Expected Annual Return", f"{portfolio_return:.2%}")
-        with col2:
-            st.metric("Expected Annual Volatility", f"{portfolio_volatility:.2%}")
-        with col3:
-            st.metric(metric_name, f"{performance_metric:.2f}")
+        col1.metric("Expected Annual Return", f"{portfolio_return:.2%}")
+        col2.metric("Expected Annual Volatility", f"{portfolio_volatility:.2%}")
+        col3.metric(metric_name, f"{performance_metric:.2f}")
         
         st.subheader("Optimal Portfolio Weights")
         weight_df = pd.DataFrame({'Stock': portfolio_tickers, 'Weight': weights})
